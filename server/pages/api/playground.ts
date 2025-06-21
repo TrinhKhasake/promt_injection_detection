@@ -135,12 +135,13 @@ async function getResponse(
     //if it is a prompt injection, return the metrics and don't proceed
     return {
       detection,
-      breach: false,
+      breach: true,
       output: "Prompt injection detected",
       // eslint-disable-next-line camelcase
       canary_word: "",
       // eslint-disable-next-line camelcase
       canary_word_leaked: false,
+      is_injection: true,
     };
   }
   // if it is not a prompt injection, add a canary word to the prompt before we send it to the LLM

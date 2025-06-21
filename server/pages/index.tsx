@@ -189,27 +189,6 @@ const Playground: FC = () => {
             {renderPromptForSQL("user_input")}
           </pre>
         </Section>
-        <Section id="add-to-app" title="Add Rebuff to your own app">
-          <p>
-            Read the{" "}
-            <a className="py-4" href="https://docs.rebuff.ai" target="_blank">
-              docs
-            </a>{" "}
-            for a quick start guide and code samples. You&apos;ll need the
-            apikey below for authentication.
-          </p>
-          {session ? (
-            <ApikeyDisplay
-              apiKey={appState?.apikey ?? ""}
-              onRefresh={refreshApikey}
-            />
-          ) : (
-            <Text size="sm">Login to view your API key</Text>
-          )}
-        </Section>
-        <Section title="How Rebuff works">
-          <SequenceDiagram />
-        </Section>
       </div>
     </div>
   );
