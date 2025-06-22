@@ -47,7 +47,7 @@ export default async function handler(
     const {
       userInputBase64,
       runHeuristicCheck = true,
-      runVectorCheck = true,
+      runVectorCheck = false,
       runLanguageModelCheck = true,
       maxHeuristicScore = null,
       maxModelScore = null,
