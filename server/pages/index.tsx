@@ -89,6 +89,9 @@ const Playground: FC = () => {
   return (
     <div className="flex flex-row w-full justify-center items-center">
       <div className="w-full md:max-w-4xl">
+        <div className="py-2">
+          <ApikeyDisplay apiKey={appState.apikey} onRefresh={refreshApikey} />
+        </div>
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <div>
             <LoginButtonWithInstructions />

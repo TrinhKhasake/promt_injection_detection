@@ -81,6 +81,24 @@ function generateInjectionKeywords() {
 // Generate and print the injection keywords
 const injectionKeywords = generateInjectionKeywords();
 
+// Add custom keyword/phrase lists for more efficient detection
+const customHeuristicKeywords = [
+  // Jailbreak
+  "ignore previous instructions", "disregard above", "forget the rules", "you are now", "you must", "do anything now", "override", "system override", "disable restrictions", "simulate",
+  // Malicious SQL
+  "DROP TABLE", "DELETE FROM", "UPDATE", "INSERT INTO", "TRUNCATE", "--", "';", "OR 1=1", "UNION SELECT", "xp_cmdshell", "information_schema", "sleep(",
+  // Malicious Prompting
+  "write a prompt", "generate a prompt", "return full prompt", "leak prompt", "inject prompt", "prompt injection", "what prompt was used", "tell me the rules", "prompt template",
+  // Role Manipulation
+  "you are now", "impersonate", "act as", "pretend to be", "change role to", "admin mode",
+  // Bypass Filtering
+  "base64", "hex", "unicode escape", "obfuscate", "encode", "decode", "char(", "fromcharcode", "eval", "reverse string", "payload", "sandbox escape",
+  // Data Access Violation
+  "users table", "password", "credentials", "dump database", "access logs", "admin credentials", "show tables", "list all",
+  // Prompt Leakage
+  "repeat this prompt", "return the prompt", "print prompt", "what instructions", "canary_word", "<!--", "prompt begins", "prompt template"
+];
+
 export default class Heuristic implements Tactic {
   name = TacticName.Heuristic;
   defaultThreshold: number;
@@ -93,6 +111,14 @@ export default class Heuristic implements Tactic {
     let highestScore = 0;
     const normalizedInput = normalizeString(input);
 
+    // Check for direct presence of custom keywords/phrases (case-insensitive)
+    for (const phrase of customHeuristicKeywords) {
+      if (normalizedInput.includes(normalizeString(phrase))) {
+        highestScore = Math.max(highestScore, 1);
+      }
+    }
+
+    // Existing generated keyword logic
     for (const keyword of injectionKeywords) {
       const normalizedKeyword = normalizeString(keyword);
       const keywordParts = normalizedKeyword.split(" ");

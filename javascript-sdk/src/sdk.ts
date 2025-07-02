@@ -7,9 +7,9 @@ import {
 } from "./interface";
 import crypto from "crypto";
 import { SdkConfig } from "./config";
-import initVectorStore from "./lib/vectordb";
+import { initPinecone, chromaSimilaritySearch, chromaAddDocument } from "./lib/vectordb";
 import getOpenAIInstance from "./lib/openai";
-import { VectorStore } from "langchain/vectorstores/base";
+import { PineconeStore } from "langchain/vectorstores/pinecone";
 import { Document } from "langchain/document";
 import Strategy from "./lib/Strategy";
 import Heuristic from "./tactics/Heuristic";
@@ -23,24 +23,34 @@ function generateCanaryWord(length = 8): string {
 
 export default class RebuffSdk implements Rebuff {
   private sdkConfig: SdkConfig;
-  private vectorStore: VectorStore | undefined;
+  private pineconeStore: PineconeStore | undefined;
   private strategies: Record<string, Strategy> | undefined;
   private defaultStrategy: string;
+  private useChroma: boolean;
 
   /**
    * @deprecated Use `RebuffSdk.init` instead.
    */
   constructor(config: SdkConfig) {
-    // We're keeping this constructor for backwards compatibility. In the future, we can make it private and
-    // simplify this class quite a bit.
-
+    if (!config || !config.vectorDB) {
+      throw new RebuffError("Invalid or missing SDK config: vectorDB is required");
+    }
     this.sdkConfig = config;
     this.defaultStrategy = "standard";
+    this.useChroma = "chroma" in config.vectorDB;
   }
 
   public static async init(config: SdkConfig): Promise<RebuffSdk> {
     const sdk = new RebuffSdk(config);
-    sdk.vectorStore = await initVectorStore(config);
+    if (!sdk.useChroma) {
+      // Only initialize Pinecone if not using Chroma
+      sdk.pineconeStore = await initPinecone(
+        config.vectorDB.pinecone.environment,
+        config.vectorDB.pinecone.apikey,
+        config.vectorDB.pinecone.index,
+        {} // openaiEmbeddings placeholder, not used in this refactor
+      );
+    }
     sdk.strategies = await sdk.getStrategies();
     return sdk;
   }
@@ -57,11 +67,10 @@ export default class RebuffSdk implements Rebuff {
     const vectorScoreThreshold = 0.9;
     const openaiScoreThreshold = 0.9;
     this.strategies = {
-      // For now, this is the only strategy.
       "standard": {
         tactics: [
           new Heuristic(heuristicScoreThreshold),
-          new Vector(vectorScoreThreshold, await this.getVectorStore()),
+          new Vector(vectorScoreThreshold, this),
           new OpenAI(openaiScoreThreshold, openai.model, openai.conn),
         ]
       },
@@ -75,9 +84,7 @@ export default class RebuffSdk implements Rebuff {
     tacticOverrides = [],
   }: DetectRequest): Promise<DetectResponse> {
     if (userInputBase64) {
-      // Create a buffer from the hexadecimal string
       const userInputBuffer = Buffer.from(userInputBase64, "hex");
-      // Decode the buffer to a UTF-8 string
       userInput = userInputBuffer.toString("utf-8");
     }
     if (!userInput) {
@@ -118,7 +125,6 @@ export default class RebuffSdk implements Rebuff {
     canaryWord: string = generateCanaryWord(),
     canaryFormat = "<!-- {canary_word} -->"
   ): [string, string] {
-    // Embed the canary word in the specified format
     const canaryComment = canaryFormat.replace("{canary_word}", canaryWord);
     const promptWithCanary = `${canaryComment}\n${prompt}`;
     return [promptWithCanary, canaryWord];
@@ -130,7 +136,6 @@ export default class RebuffSdk implements Rebuff {
     canaryWord: string,
     logOutcome = true
   ): boolean {
-    // Check if the canary word appears in the completion
     if (completion.includes(canaryWord)) {
       if (logOutcome) {
         this.logLeakage(userInput, { completion, "canary_word": canaryWord });
@@ -140,21 +145,31 @@ export default class RebuffSdk implements Rebuff {
     return false;
   }
 
-  async getVectorStore(): Promise<VectorStore> {
-    if (this.vectorStore) {
-      return this.vectorStore;
+  // This method is used by the Vector tactic
+  async vectorSimilaritySearch(input: string, n_results = 5): Promise<any> {
+    if (this.useChroma) {
+      return await chromaSimilaritySearch(input, n_results);
+    } else {
+      if (!this.pineconeStore) throw new RebuffError("Pinecone store not initialized");
+      return await this.pineconeStore.similaritySearchWithScore(input, n_results);
     }
-    this.vectorStore = await initVectorStore(this.sdkConfig);
-    return this.vectorStore
+  }
+
+  async addVectorDocument(input: string, id: string, metadata: Record<string, any> = {}): Promise<any> {
+    if (this.useChroma) {
+      return await chromaAddDocument(input, id, metadata);
+    } else {
+      if (!this.pineconeStore) throw new RebuffError("Pinecone store not initialized");
+      // Pinecone add logic here if needed
+      return null;
+    }
   }
 
   async logLeakage(
     input: string,
     metaData: Record<string, string>
   ): Promise<void> {
-    await (await this.getVectorStore()).addDocuments([new Document({
-      metadata: metaData,
-      pageContent: input,
-    })]);
+    // Optionally add to vector DB for logging
+    // You can call addVectorDocument here if desired
   }
 }

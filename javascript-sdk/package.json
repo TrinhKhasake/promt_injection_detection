@@ -24,11 +24,17 @@
   "homepage": "https://github.com/protectai/rebuff#readme",
   "dependencies": {
     "@pinecone-database/pinecone": "^0.1.6",
+    "@visheratin/tokenizers-node": "^0.1.5",
+    "@visheratin/web-ai-node": "^1.4.5",
     "chai": "^4.3.7",
     "chromadb": "1.5.6",
+    "cohere-ai": "^7.17.1",
     "crypto": "^1.0.1",
+    "encoding": "^0.1.13",
+    "jimp": "^0.16.13",
     "langchain": "^0.0.159",
-    "node-fetch": "^3.3.1",
+    "node-fetch": "^3.3.2",
+    "onnxruntime-node": "^1.15.1",
     "openai": "^3.2.1",
     "string-similarity": "^4.0.4"
   },
@@ -36,7 +42,7 @@
     "@types/chai": "^4.3.9",
     "@types/mocha": "^10.0.3",
     "@types/string-similarity": "^4.0.1",
-    "ts-node": "^10.9.1",
-    "mocha": "^10.2.0"
+    "mocha": "^10.2.0",
+    "ts-node": "^10.9.1"
   }
 }

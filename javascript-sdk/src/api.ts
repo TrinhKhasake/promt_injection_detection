@@ -3,6 +3,7 @@ import {
   DetectResponse,
   Rebuff,
   RebuffError,
+  TacticName,
 } from "./interface";
 import fetch from "node-fetch";
 import crypto from "crypto";
@@ -42,27 +43,15 @@ export default class RebuffApi implements Rebuff {
     };
   }
 
-  async detectInjection({
-    userInput = "",
-    maxHeuristicScore = 0.75,
-    maxVectorScore = 0.9,
-    maxModelScore = 0.9,
-    runHeuristicCheck = true,
-    runVectorCheck = true,
-    runLanguageModelCheck = true,
-  }: DetectRequest): Promise<DetectResponse> {
-    if (userInput === null) {
+  async detectInjection(request: DetectRequest): Promise<DetectResponse> {
+    if (!request.userInput) {
       throw new RebuffError("userInput is required");
     }
-    const requestData: DetectRequest = {
-      userInput: "",
-      userInputBase64: encodeString(userInput),
-      runHeuristicCheck: runHeuristicCheck,
-      runVectorCheck: runVectorCheck,
-      runLanguageModelCheck: runLanguageModelCheck,
-      maxVectorScore,
-      maxModelScore,
-      maxHeuristicScore,
+    
+    const requestData = {
+      userInput: request.userInput,
+      userInputBase64: request.userInputBase64,
+      tacticOverrides: request.tacticOverrides || []
     };
 
     const response = await fetch(`${this.apiUrl}/api/detect`, {
@@ -76,10 +65,7 @@ export default class RebuffApi implements Rebuff {
     if (!response.ok) {
       throw new RebuffError((responseData as any)?.message);
     }
-    responseData.injectionDetected =
-      responseData.heuristicScore > maxHeuristicScore ||
-      responseData.modelScore > maxModelScore ||
-      responseData.vectorScore.topScore > maxVectorScore;
+    
     return responseData;
   }
 

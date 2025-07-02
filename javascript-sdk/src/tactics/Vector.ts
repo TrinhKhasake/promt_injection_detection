@@ -1,24 +1,23 @@
-import { VectorStore } from "langchain/vectorstores/base";
 import { RebuffError, TacticName } from "../interface";
 import Tactic, { TacticExecution } from "./Tactic";
-
 
 export default class Vector implements Tactic {
   name = TacticName.VectorDB;
   defaultThreshold: number;
 
-  private vectorStore: VectorStore;
+  // Instead of a VectorStore, we now expect the SDK instance
+  private sdk: any;
 
-  constructor(threshold: number, vectorStore: VectorStore) {
+  constructor(threshold: number, sdk: any) {
     this.defaultThreshold = threshold;
-    this.vectorStore = vectorStore;
+    this.sdk = sdk;
   }
 
   async execute(input: string, thresholdOverride?: number): Promise<TacticExecution> {
     const threshold = thresholdOverride || this.defaultThreshold;
     try {
       const topK = 20;
-      const results = await this.vectorStore.similaritySearchWithScore(input, topK);
+      const results = await this.sdk.vectorSimilaritySearch(input, topK);
   
       let topScore = 0;
       let countOverMaxVectorScore = 0;
