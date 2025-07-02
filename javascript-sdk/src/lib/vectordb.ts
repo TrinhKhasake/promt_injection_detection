@@ -57,7 +57,16 @@ async function chromaSimilaritySearch(input: string, n_results = 5): Promise<any
   if (!response.ok) {
     throw new Error(`Chroma similarity search failed: ${response.status}`);
   }
-  return (await response.json()).results;
+  const data = await response.json();
+  // If ChromaDB returns distances, convert to similarity scores
+  if (data && data.results && data.results.documents && data.results.distances) {
+    const docs = data.results.documents[0] || [];
+    const dists = data.results.distances[0] || [];
+    // Pair each document with its similarity score (1 - distance)
+    return docs.map((doc: string, i: number) => [doc, 1 - dists[i]]);
+  }
+  // Fallback: return empty array if structure is unexpected
+  return [];
 }
 
 async function chromaAddDocument(input: string, id: string, metadata: Record<string, any> = {}): Promise<any> {

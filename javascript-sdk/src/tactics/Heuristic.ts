@@ -86,7 +86,7 @@ const customHeuristicKeywords = [
   // Jailbreak
   "ignore previous instructions", "disregard above", "forget the rules", "you are now", "you must", "do anything now", "override", "system override", "disable restrictions", "simulate",
   // Malicious SQL
-  "DROP TABLE", "DELETE FROM", "UPDATE", "INSERT INTO", "TRUNCATE", "--", "';", "OR 1=1", "UNION SELECT", "xp_cmdshell", "information_schema", "sleep(",
+  "DROP TABLE", "DELETE FROM", "UPDATE", "INSERT INTO", "TRUNCATE", "OR 1=1", "UNION SELECT", "xp_cmdshell", "information_schema", "sleep(",
   // Malicious Prompting
   "write a prompt", "generate a prompt", "return full prompt", "leak prompt", "inject prompt", "prompt injection", "what prompt was used", "tell me the rules", "prompt template",
   // Role Manipulation
@@ -96,7 +96,7 @@ const customHeuristicKeywords = [
   // Data Access Violation
   "users table", "password", "credentials", "dump database", "access logs", "admin credentials", "show tables", "list all",
   // Prompt Leakage
-  "repeat this prompt", "return the prompt", "print prompt", "what instructions", "canary_word", "<!--", "prompt begins", "prompt template"
+  "repeat this prompt", "return the prompt", "print prompt", "what instructions", "canary_word", "prompt begins", "prompt template"
 ];
 
 export default class Heuristic implements Tactic {
@@ -109,12 +109,15 @@ export default class Heuristic implements Tactic {
 
   execute(input: string): Promise<TacticExecution> {
     let highestScore = 0;
+    let matchedPhrase: string | null = null;
     const normalizedInput = normalizeString(input);
 
     // Check for direct presence of custom keywords/phrases (case-insensitive)
     for (const phrase of customHeuristicKeywords) {
       if (normalizedInput.includes(normalizeString(phrase))) {
         highestScore = Math.max(highestScore, 1);
+        matchedPhrase = phrase;
+        console.log(`[Heuristic] Matched custom phrase: ${phrase}`);
       }
     }
 
@@ -155,10 +158,11 @@ export default class Heuristic implements Tactic {
         // Update the highest score if the current adjusted score is higher
         if (adjustedScore > highestScore) {
           highestScore = adjustedScore;
+          matchedPhrase = keyword;
         }
       }
     }
     
-    return Promise.resolve({ score: highestScore });
+    return Promise.resolve({ score: highestScore, additionalFields: { matchedPhrase } });
   }
 }

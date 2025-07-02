@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import chromadb
 import uvicorn
 import os
+from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
 
 app = FastAPI()
 
@@ -19,7 +20,14 @@ app.add_middleware(
 persistent_dir = "./chroma_data"
 os.makedirs(persistent_dir, exist_ok=True)
 client = chromadb.PersistentClient(path=persistent_dir)
-collection = client.get_or_create_collection("rebuff-prompt-injections")
+
+# Set up local sentence-transformers embedding function
+embedding_function = SentenceTransformerEmbeddingFunction(model_name="all-MiniLM-L6-v2")
+
+collection = client.get_or_create_collection(
+    "rebuff-prompt-injections",
+    embedding_function=embedding_function
+)
 
 @app.post("/add")
 async def add_vector(request: Request):
