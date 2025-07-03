@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { pinecone } from "@/lib/pinecone-client";
+// import { pinecone } from "@/lib/pinecone-client"; // Temporarily disabled
 import stringSimilarity from "string-similarity";
 import { supabaseAdminClient } from "@/lib/supabase";
 import { openai } from "@/lib/openai";
@@ -113,55 +113,13 @@ export async function checkApiKey(
   return { success: true, message: "API key accepted", account_id: data[0].id };
 }
 
+// Temporarily disabled vector database detection
 export async function detectPiUsingVectorDatabase(
   input: string,
   similarityThreshold: number
 ): Promise<{ topScore: number; countOverMaxVectorScore: number }> {
-  try {
-    // Create embedding from input
-    const emb = await openai.createEmbedding({
-      model: "text-embedding-ada-002",
-      input: input,
-    });
-
-    // Get Pinecone Index
-    const index = (await pinecone).Index(
-      getEnvironmentVariable("PINECONE_INDEX_NAME")
-    );
-
-    // Query similar embeddings
-    const queryResponse = await index.query({
-      queryRequest: {
-        vector: emb.data.data[0].embedding,
-        topK: 20,
-        includeValues: true,
-      },
-    });
-
-    let topScore = 0;
-    let countOverMaxVectorScore = 0;
-
-    if (queryResponse.matches != undefined) {
-      for (const match of queryResponse.matches) {
-        if (match.score == undefined) {
-          continue;
-        }
-
-        if (match.score > topScore) {
-          topScore = match.score;
-        }
-
-        if (match.score >= similarityThreshold && match.score > topScore) {
-          countOverMaxVectorScore++;
-        }
-      }
-    }
-
-    return { topScore, countOverMaxVectorScore };
-  } catch (error) {
-    console.error("Error in detectPiUsingVectorDatabase:", error);
-    return { topScore: 0, countOverMaxVectorScore: 0 };
-  }
+  console.log("Vector database detection is temporarily disabled");
+  return { topScore: 0, countOverMaxVectorScore: 0 };
 }
 
 export function generateInjectionKeywords() {

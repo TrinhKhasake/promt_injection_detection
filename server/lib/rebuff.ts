@@ -1,28 +1,40 @@
-import { RebuffSdk, VectorDbConfig } from "rebuff";
+import { RebuffSdk } from "rebuff";
 import { getEnvironmentVariable } from "./general-helpers";
 
-let vectorDB: VectorDbConfig;
-if (process.env["VECTOR_DB"] === "chroma") {
-  vectorDB = {
-    chroma: {
-      url: getEnvironmentVariable("CHROMA_URL"),
-      collectionName: getEnvironmentVariable("CHROMA_COLLECTION_NAME"),
+const getRebuffSdk = () => {
+  return new RebuffSdk({
+    openai: {
+      apikey: getEnvironmentVariable("OPENAI_API_KEY"),
+      model: "gpt-3.5-turbo",
+    },
+    vectorDB: {
+      chroma: {
+        url: "http://localhost:8001",
+        collectionName: "rebuff-prompt-injections"
+      }
     }
-  }
-} else {
-  vectorDB = {
-    pinecone: {
-      environment: getEnvironmentVariable("PINECONE_ENVIRONMENT"),
-      apikey: getEnvironmentVariable("PINECONE_API_KEY"),
-      index: getEnvironmentVariable("PINECONE_INDEX_NAME"),
-    }
-  }
-}
+  });
+};
 
-export const rebuff = new RebuffSdk({
-  openai: {
-    apikey: getEnvironmentVariable("OPENAI_API_KEY"),
-    model: "gpt-3.5-turbo",
+export const rebuff = {
+  async detectInjection(request: any) {
+    const sdk = getRebuffSdk();
+    try {
+      return await sdk.detectInjection(request);
+    } catch (error) {
+      if (request.runVectorCheck) {
+        console.log(
+          "Vector DB connection failed, falling back to heuristic and LLM checks."
+        );
+        const requestWithoutVector = {
+          ...request,
+          runVectorCheck: false,
+        };
+        // Retry with the same SDK instance, but with vector check disabled
+        return sdk.detectInjection(requestWithoutVector);
+      }
+      // If the error occurred even without the vector check, re-throw it
+      throw error;
+    }
   },
-  vectorDB: vectorDB,
-});
+};

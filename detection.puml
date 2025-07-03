@@ -1,57 +1,56 @@
-title Detect Injection
+title Prompt Injection Detection System
 
 actor User
+participant "Web App" as App
+participant "Detection Engine" as Engine
+participant "Heuristic Check" as Heuristic
+participant "AI Analysis" as AI
+participant "Canary Protection" as Canary
 
-participant RebuffClient
+User -> App: Submit input
+activate App
 
-participant RebuffAIAPI
-participant LLM
-participant VectorDB
+App -> Engine: Check for injection
+activate Engine
 
+Engine -> Heuristic: Pattern analysis
+activate Heuristic
+Heuristic -> Heuristic: Compare with known attacks
+Heuristic --> Engine: Score (0-1)
+deactivate Heuristic
 
+Engine -> AI: Intent analysis
+activate AI
+AI -> AI: Evaluate manipulation risk
+AI --> Engine: Score (0-1)
+deactivate AI
 
-User -> RebuffClient : user input
-activate RebuffClient
-RebuffClient -> RebuffAIAPI : detect_injection()
-activate RebuffAIAPI
-alt heuristic check
-  RebuffAIAPI --> RebuffAIAPI : stage 1
+Engine -> Engine: Combine scores
+Engine -> Engine: Make decision
+
+alt Injection Detected
+    Engine --> App: Block request
+    App --> User: Security alert
+else Safe Input
+    Engine -> Canary: Add protection
+    activate Canary
+    Canary -> Canary: Insert hidden markers
+    Canary --> Engine: Protected prompt
+    deactivate Canary
+    
+    Engine -> AI: Process safely
+    activate AI
+    AI --> Engine: Response
+    deactivate AI
+    
+    Engine -> Canary: Check for leaks
+    activate Canary
+    Canary --> Engine: Leak status
+    deactivate Canary
+    
+    Engine --> App: Safe response
+    App --> User: Normal output
 end
-alt LLM check
-  RebuffAIAPI -> LLM : validate input
-  activate LLM
-  LLM --> RebuffAIAPI : validation result
-  deactivate LLM
-end
-alt vectordb check
-  RebuffAIAPI -> VectorDB : check input
-  activate VectorDB
-  VectorDB --> RebuffAIAPI : check result
-  deactivate VectorDB
-end
-RebuffAIAPI --> RebuffClient : response
-deactivate RebuffAIAPI
-RebuffClient --> User : response
-deactivate RebuffClient
 
-User -> RebuffClient : user input with canary word
-activate RebuffClient
-RebuffClient -> LLM : send prompt with canary word
-activate LLM
-LLM --> RebuffClient : response completion
-deactivate LLM
-RebuffClient --> User : detect_canary_word()
-deactivate RebuffClient
-
-User -> RebuffClient : user input (leak==true)
-activate RebuffClient
-RebuffClient -> RebuffAIAPI : report_leak()
-activate RebuffAIAPI
-RebuffAIAPI->VectorDB:log_leak()
-activate VectorDB
-VectorDB-->RebuffAIAPI:save confirmation
-deactivate VectorDB
-RebuffAIAPI --> RebuffClient : confirmation
-deactivate RebuffAIAPI
-RebuffClient --> User : confirmation
-deactivate RebuffClient
+deactivate Engine
+deactivate App

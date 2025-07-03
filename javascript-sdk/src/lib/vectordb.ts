@@ -1,30 +1,13 @@
-import { OpenAIEmbeddings } from "langchain/embeddings/openai";
 import { PineconeStore } from "langchain/vectorstores/pinecone";
-import { VectorStore } from "langchain/vectorstores/base";
 import { PineconeClient } from "@pinecone-database/pinecone";
-import { Chroma } from "langchain/vectorstores/chroma";
-import { Document } from "langchain/document.js";
 import { SdkConfig } from "../config";
 
-// Our code expects a similarity score where similar vectors are close to 1, but Chroma returns a distance score
-// where similar vectors are close to 0. Note that this class may not work if using a distance metric other than
-// cosine.
-class ChromaCosineSimilarity extends Chroma {
-  async similaritySearchVectorWithScore(
-    query: number[],
-    k: number,
-    filter?: this["FilterType"]
-  ): Promise<[Document<Record<string, any>>, number][]> {
-    const results = await super.similaritySearchVectorWithScore(query, k, filter);
-    return results.map(([id, score]) => [id, 1 - score]);
-  }
-}
-
+// Pinecone logic remains unchanged
 async function initPinecone(
   environment: string,
   apiKey: string,
   index: string,
-  openaiEmbeddings: OpenAIEmbeddings,
+  openaiEmbeddings: any,
 ): Promise<PineconeStore> {
   if (!environment) {
     throw new Error("Pinecone environment definition missing");
@@ -37,7 +20,6 @@ async function initPinecone(
   }
   try {
     const pinecone = new PineconeClient();
-
     await pinecone.init({
       environment,
       apiKey,
@@ -47,7 +29,6 @@ async function initPinecone(
       openaiEmbeddings,
       { pineconeIndex }
     );
-
     return vectorStore;
   } catch (error) {
     console.log("error", error);
@@ -55,56 +36,49 @@ async function initPinecone(
   }
 }
 
-async function initChroma(
-  collectionName: string,
-  url: string,
-  openaiEmbeddings: OpenAIEmbeddings,
-): Promise<ChromaCosineSimilarity> {
-  if (!url) {
-    throw new Error("Chroma url definition missing");
-  }
-  if (!collectionName) {
-    throw new Error("Chroma collectionName definition missing");
-  }
-  try {
-    const vectorStore = new ChromaCosineSimilarity(
-      openaiEmbeddings,
-      {
-        collectionName,
-        url,
-        numDimensions: 1536,
-        collectionMetadata: { 
-          "hnsw:space": "cosine"
-        },
-      }
-    );
-    await vectorStore.ensureCollection();
-    return vectorStore;
-  } catch (error) {
-    console.log("error", error);
-    throw new Error("Failed to initialize Chroma client");
+function getApiUrl(path: string): string {
+  if (typeof window === "undefined") {
+    // Server-side: use absolute URL
+    const base = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+    return base + path;
+  } else {
+    // Client-side: use relative URL
+    return path;
   }
 }
 
-export default async function initVectorStore(
-  config: SdkConfig
-): Promise<VectorStore> {
-  const openaiEmbeddings = new OpenAIEmbeddings({
-    openAIApiKey: config.openai.apikey,
-    modelName: "text-embedding-ada-002"
+// Chroma logic is now API-based
+async function chromaSimilaritySearch(input: string, n_results = 5): Promise<any> {
+  const response = await fetch(getApiUrl("/api/vector-chroma"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "similaritySearch", input, n_results })
   });
-  if ("pinecone" in config.vectorDB) {
-    return await initPinecone(
-      config.vectorDB.pinecone.environment,
-      config.vectorDB.pinecone.apikey,
-      config.vectorDB.pinecone.index,
-      openaiEmbeddings
-    );
-  } else {
-    return await initChroma(
-      config.vectorDB.chroma.collectionName,
-      config.vectorDB.chroma.url,
-      openaiEmbeddings
-    );
+  if (!response.ok) {
+    throw new Error(`Chroma similarity search failed: ${response.status}`);
   }
+  const data = await response.json();
+  // If ChromaDB returns distances, convert to similarity scores
+  if (data && data.results && data.results.documents && data.results.distances) {
+    const docs = data.results.documents[0] || [];
+    const dists = data.results.distances[0] || [];
+    // Pair each document with its similarity score (1 - distance)
+    return docs.map((doc: string, i: number) => [doc, 1 - dists[i]]);
+  }
+  // Fallback: return empty array if structure is unexpected
+  return [];
 }
+
+async function chromaAddDocument(input: string, id: string, metadata: Record<string, any> = {}): Promise<any> {
+  const response = await fetch(getApiUrl("/api/vector-chroma"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "addDocument", input, id, metadata })
+  });
+  if (!response.ok) {
+    throw new Error(`Chroma add document failed: ${response.status}`);
+  }
+  return (await response.json()).result;
+}
+
+export { initPinecone, chromaSimilaritySearch, chromaAddDocument };

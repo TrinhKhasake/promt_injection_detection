@@ -6,7 +6,7 @@ import {
   rem,
   Loader,
 } from "@mantine/core";
-import { useContext } from "react";
+import { useContext, useEffect, useState } from "react";
 import { AppContext } from "./AppContext";
 
 const useStyles = createStyles((theme) => ({
@@ -24,6 +24,27 @@ const useStyles = createStyles((theme) => ({
 export function PromptInjectionStats() {
   const { classes } = useStyles();
   const { appState, accountLoading } = useContext(AppContext);
+  const [learnedAttackSignatures, setLearnedAttackSignatures] = useState(0);
+  const [loadingSignatures, setLoadingSignatures] = useState(true);
+
+  useEffect(() => {
+    async function fetchSignatures() {
+      setLoadingSignatures(true);
+      try {
+        const response = await fetch("/api/global-stats");
+        const data = await response.json();
+        setLearnedAttackSignatures(data.learnedAttackSignatures ?? 0);
+      } catch (e) {
+        // ignore
+      } finally {
+        setLoadingSignatures(false);
+      }
+    }
+    fetchSignatures();
+    const interval = setInterval(fetchSignatures, 5000); // auto-refresh every 5s
+    return () => clearInterval(interval);
+  }, []);
+
   const stats = [
     {
       label: "total requests",
@@ -31,6 +52,7 @@ export function PromptInjectionStats() {
       part: null,
       textColor: "text-gray-500",
       borderColor: "border-gray-500",
+      loading: accountLoading,
     },
     {
       label: "injections detected",
@@ -38,13 +60,15 @@ export function PromptInjectionStats() {
       part: null,
       textColor: "text-gray-500",
       borderColor: "border-gray-500",
+      loading: accountLoading,
     },
     {
       label: "learned attack signatures",
-      count: `${appState?.stats?.breaches?.total ?? 0}`,
+      count: `${learnedAttackSignatures}`,
       part: null,
       textColor: "text-gray-500",
       borderColor: "border-green-700",
+      loading: loadingSignatures,
     },
   ];
 
@@ -57,7 +81,7 @@ export function PromptInjectionStats() {
           </Text>
 
           <Group position="apart" align="flex-end" spacing={0}>
-            {accountLoading ? (
+            {stat.loading ? (
               <Loader color="gray" variant="dots" />
             ) : (
               <Text fw={700}>{stat.count}</Text>

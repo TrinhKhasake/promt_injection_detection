@@ -71,25 +71,9 @@ export const AppProvider: FC<{ children: ReactNode }> = ({ children }) => {
     setAppState((prev) => ({ ...prev, stats: stats }));
   };
   const refreshStats = async () => {
-    setAccountLoading(true);
-    try {
-      const response = await fetch("/api/account/stats");
-      const data = (await response.json()) as AppState["stats"];
-      if (!data) return;
-      if (
-        typeof data?.breaches?.total ??
-        (undefined === "number" && typeof data?.breaches?.user) ??
-        (undefined === "number" && typeof data?.detections) ??
-        (undefined === "number" && typeof data?.requests) ??
-        undefined === "number"
-      ) {
-        setStats(data);
-      }
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setAccountLoading(false);
-    }
+    const response = await fetch("/api/global-stats");
+    const data = (await response.json()) as AppState["stats"];
+    setStats(data);
   };
   const refreshApikey = async () => {
     setPromptLoading(true);

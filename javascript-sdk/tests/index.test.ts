@@ -26,8 +26,8 @@ const rb_chroma = await RebuffSDK.init({
   },
   vectorDB: {
     chroma: {
-      url: getEnvironmentVariable("CHROMA_URL"),
-      collectionName: getEnvironmentVariable("CHROMA_COLLECTION_NAME"),
+      url: getEnvironmentVariable("CHROMA_URL") || "http://localhost:8000",
+      collectionName: getEnvironmentVariable("CHROMA_COLLECTION_NAME") || "rebuff-prompt-injections",
     }
   }
 });

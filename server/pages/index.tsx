@@ -89,6 +89,9 @@ const Playground: FC = () => {
   return (
     <div className="flex flex-row w-full justify-center items-center">
       <div className="w-full md:max-w-4xl">
+        <div className="py-2">
+          <ApikeyDisplay apiKey={appState.apikey} onRefresh={refreshApikey} />
+        </div>
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <div>
             <LoginButtonWithInstructions />
@@ -188,27 +191,6 @@ const Playground: FC = () => {
           <pre className="text-[0.9rem] leading-[1.4rem] overflow-auto whitespace-pre-wrap">
             {renderPromptForSQL("user_input")}
           </pre>
-        </Section>
-        <Section id="add-to-app" title="Add Rebuff to your own app">
-          <p>
-            Read the{" "}
-            <a className="py-4" href="https://docs.rebuff.ai" target="_blank">
-              docs
-            </a>{" "}
-            for a quick start guide and code samples. You&apos;ll need the
-            apikey below for authentication.
-          </p>
-          {session ? (
-            <ApikeyDisplay
-              apiKey={appState?.apikey ?? ""}
-              onRefresh={refreshApikey}
-            />
-          ) : (
-            <Text size="sm">Login to view your API key</Text>
-          )}
-        </Section>
-        <Section title="How Rebuff works">
-          <SequenceDiagram />
         </Section>
       </div>
     </div>

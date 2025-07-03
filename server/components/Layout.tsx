@@ -20,16 +20,6 @@ const Layout = ({ children }: Props) => {
         <footer className="w-full text-gray-500">
           <div className="flex justify-between items-center">
             <div className="text-left">© {new Date().getFullYear()}</div>
-            <div>
-              Made by{" "}
-              <a href="https://twitter.com/willpienaar" target="_blank">
-                @willpienaar
-              </a>{" "}
-              and{" "}
-              <a href="https://twitter.com/shrumm" target="_blank">
-                @shrumm
-              </a>
-            </div>
             <div className="flex flex-row justify-right items-center">
               <div className="text-sm">Questions? Get in touch.</div>
               <SocialIcons />

@@ -1,0 +1,29 @@
+{
+  "name": "promt_injection_detection",
+  "version": "1.0.0",
+  "description": "<!-- markdownlint-configure-file {\r   \"MD013\": {\r     \"code_blocks\": false,\r     \"tables\": false\r   },\r   \"MD033\": false,\r   \"MD041\": false\r } -->",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TrinhKhasake/promt_injection_detection.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/TrinhKhasake/promt_injection_detection/issues"
+  },
+  "homepage": "https://github.com/TrinhKhasake/promt_injection_detection#readme",
+  "dependencies": {
+    "@visheratin/web-ai-node": "^1.4.5",
+    "cohere-ai": "^7.17.1",
+    "encoding": "^0.1.13",
+    "jimp": "^0.16.13"
+  }
+}
